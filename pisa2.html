@@ -1,0 +1,353 @@
+<html>
+	<head>
+		<title>PISA Math Proficiency 2012 - OECD</title>
+		<style>
+			circle{		opacity:0.1;}	
+						
+			line{		stroke:gray;
+						stroke-width:2;}
+			svg{		margin:10;
+						font-family:Helvetica}
+			
+			.cPath{		opacity:0.7}
+			
+			.info 		{	text-anchor:middle;
+						font-size:2em}
+						
+			.hide{		fill:none}
+			
+			.grid {		stroke: black;
+    					fill:none}
+    					
+    		.yAxis	{	opacity:0.5}
+    		.xAxis	{	opacity:1}
+    					
+    					
+    		text{		fill:black}
+    		
+    		.OECD-average{	opacity:0.8;
+    						stroke-width:10}
+    		.OECD-total{	opacity:0.8;
+    						stroke-width:10}
+    						
+    		.footer	{	text-align:center;
+    					font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
+    					font-size:1.3em;
+    					margin-top:25px;}
+			
+			
+
+		</style>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+	</head>
+	<body>
+		<script>
+			
+		//createNetwork();
+		create1stLineGraph();
+			
+			
+			
+		function create1stLineGraph(){
+			
+			var svg2 = d3.select("body").append("svg")
+											.attr("width", 1200)
+											.attr("height", 600);
+			var colors = d3.scale.category10();
+			var listofCountries = [];
+			//addGroupMeans(svg2, colors);
+			
+			d3.json("pisa2.json", function(data){
+				var xScale = d3.scale.linear()
+								.domain([0, data[0].pisa.length-1])
+								.range([70, 800]);
+				var tickValueList = ['<358', '358-420', '421-482', '483-544', '545-606', '607-669', '>670'];
+				
+				for (var i=0; i< data.length; i++){
+					listofCountries[i] = data[i].name;
+				}
+				
+				//console.log(listofCountries);
+				
+							
+				var yScale = d3.scale.linear()
+								.domain([0, 50])
+								.range([550, 50]);
+				var tickNames = function(d){return d.name};
+				var xAxis = d3.svg.axis().scale(xScale).tickFormat(function(d,i){return tickValueList[i/2]});
+				var yAxis = d3.svg.axis().scale(yScale).orient("left").ticks(5).tickSize(-780, 0, 0);
+				
+				svg2.append('text')
+					.text('% of All Students')
+					.attr('x', -360)
+					.attr('y', 12)
+					.attr('transform', 'rotate(-90)');
+				svg2.append('text')
+					.text('Math Score')
+					.attr('x', 380)
+					.attr('y', 600);
+					
+					
+				svg2.append('text')
+					.text('Mathematics proficiency: PISA 2012 (OECD)')
+					.attr('x', 430)
+					.attr('y', 30)
+					.style('text-anchor', 'middle')
+					.attr('font-size', '2em');	
+				
+				svg2.append('text')
+					.text('Move your mouse over country names or data points')
+					.attr('x', 430)
+					.attr('y', 65)
+					.style('text-anchor', 'middle')
+					.attr('font-size', '0.9em');
+				
+				
+				svg2.append("g").attr("transform", "translate(0, 560)")
+								.attr('class', 'grid xAxis')
+								.call(xAxis);
+				
+				svg2.append("g").attr("transform", "translate(40, 0	)")
+								.attr('class', 'grid yAxis')
+								.call(yAxis);
+								
+				var line = d3.svg.line()
+								.x(function(d,i){return xScale(i)})
+								.y(function(d){return yScale(d)});
+				
+				for (var i=0; i<data.length; i++){
+					svg2.append("path")
+							.attr("d", line(data[i].pisa))
+							.attr("class", "cPath "+data[i].name)
+							.style('stroke', colors(data[i].group-1))
+							.attr("stroke-width", 2)
+							.attr("fill", "none");
+							
+					svg2.selectAll('circle.'+data[i].name).data(data[i].pisa).enter()
+							.append('circle').on('mouseover', showData).on('mouseout', hideData)
+								.attr('id', data[i].name)
+								.style('fill', colors(data[i].group-1))
+								.attr('cx', function(d,i){return xScale(i)})
+								.attr('cy', function(d){return yScale(d)})
+								.attr('r', 5);
+					console.log(i+data[i].name);			
+					svg2.selectAll('text.tooltip').data(data[i].pisa).enter()
+							.append('text')
+								.attr('class', 'info')
+								.attr('id', 'tooltip'+data[i].name)
+								.style('fill', 'none')
+								.attr('x', function(d,i){return xScale(i)})
+								.attr('y', function(d){return yScale(d)-10})
+								.text(function(d){return d});
+								
+								
+								
+								
+					svg2.append('text').on('mouseover', showLine).on('mouseout', hideLine)
+							.style('fill', colors(data[i].group-1))
+							.attr('id', data[i].name)
+							.attr('x', function(){
+											if(i>data.length/2){
+												return 1000;
+											}else{
+												return 850;
+											}
+										})
+							.attr('y', function(){
+											if(i>data.length/2){
+												return i%34*17 + 19;
+											}else{
+												return i*17+19;
+											}
+										})
+							.text(data[i].name);
+							
+							
+						addGroupMeans(svg2, colors);
+							
+				}
+				
+				function showLine(){
+					console.log(this.id);
+					d3.select("text#" + this.id)
+						.style('font-size', '1.5em');	
+						
+					d3.select("." + this.id)
+						.style('opacity', 1)
+						.style('stroke-width', 7);
+					
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'black');
+					
+					
+					for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != this.id){
+							d3.select("path." + listofCountries[i])
+								.style("opacity", 0.1);
+							d3.selectAll("circle#" + listofCountries[i])
+								.attr("opacity", 0.1);
+						}
+					}
+				}
+				
+				function hideLine(){
+					d3.select("text#" + this.id)
+						.style('font-size', '1em');
+						
+					d3.select("." + this.id)
+						.style('opacity', 1)
+						.style('stroke-width', 2);
+					for (var i=0; i<listofCountries.length;i++){
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.7);
+						d3.selectAll("circle#" + listofCountries[i])
+								.style("opacity", 0.1);
+					}
+					
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'none');
+				}
+				
+				function showData(d,i){
+					//d3.select("text.tooltip" + this.id)
+					//	.style('fill', 'black');
+						
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'black');
+						
+					console.log(this.id);
+					
+						
+					d3.select("." + this.id)
+						.style('opacity', 1)
+						.style('stroke-width', 7);
+					d3.select("text#" + this.id)
+						.style('font-size', '1.5em');	
+						
+					for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != this.id)
+						d3.select("path." + listofCountries[i])
+							.style("opacity", 0.1);
+					}
+				}
+				
+				function hideData(d,i){
+					
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'none');
+						
+					d3.select("." + this.id)
+						.style('opacity', 0.8)
+						.style('stroke-width', 2);
+						
+					d3.select("text#" + this.id)
+						.style('font-size', '1em');
+					
+					for (var i=0; i<listofCountries.length;i++){
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.7);
+					}
+				}
+				
+				var countryText = svg2.append("text")
+									.attr("id", "countryText")
+									.attr("x", 25)
+									.attr("y", 42)
+									.attr("font-size", 75)
+									.text("");	
+			});
+			
+			}
+			function incOp(d,i){
+				d3.select("path." + d.name)
+						.style("opacity", 1);
+				d3.select("text#countryText").text(d.name)
+												.attr("class", d.name)
+												.attr("fill", "none");
+												
+				for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != d.name)
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.1);
+				}
+				
+			}
+			function redOp(d,i){
+				d3.select("path." + d.name)
+						.style("opacity", 0.5);
+				d3.select("text#countryText").text("");
+				for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != d.name)
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.1);
+				}
+			}
+			
+			function addGroupMeans(svg, colors){
+				var groupMeans = [
+								[8.0,15.6,23.8,24.4,17.3,8.0,2.4],
+								[16.6,25.1,26.7,18.5,9.2,3.0,0.6],
+								[2.5,5.9,11.9,17.7,22.3,20.9,18.4],
+								[23.9,30.3,25.8,13.6,4.9,1.1,0.1],
+								[44.4,28.9,16.5,6.8,2.4,0.7,0.1],
+								[3.9,10.1,19.4,25.3,22.6,13.3,5.1],
+								[35.1,30.9,21.5,9.2,2.5,0.5,0.0]
+							];
+				
+				var x =550 , y=91;
+				var xScale = d3.scale.linear()
+								.domain([0, groupMeans.length-1])
+								.range([x, x+200]);
+		
+				var yScale = d3.scale.linear()
+								.domain([0, 50])
+								.range([y+150, y]);			
+				
+				svg.append('rect')
+					.attr('x', x-10)
+					.attr('y', y-5)
+					.attr('height', 160)
+					.attr('width', 220)
+					.style('fill', '#F3FAFE')
+					.style('opacity', 1)
+					.style('stroke', '#87CEFA')
+					.style('stroke-width', 1);
+				var line = d3.svg.line()
+								.x(function(d,i){return xScale(i)})
+								.y(function(d){return yScale(d)});
+								
+				for (var i=0; i<groupMeans.length; i++){
+					svg.append("path")
+							.attr("d", line(groupMeans[i]))
+							.attr('class', 'means')
+							.style('stroke', colors(i))
+							.attr("stroke-width", 4)
+							.attr("fill", "none");
+				}
+				
+				svg.append('text')
+					.text('7 different score profiles')
+					.attr('x', x+100)
+					.attr('y', y+10)
+					.style('text-anchor', 'middle')
+					.attr('font-size', '0.85em')
+					.style('font-weight', 'bold');
+				svg.append('text')
+					.text('Countries are colored by its profile')
+					.attr('x', x+100)
+					.attr('y', y+25)
+					.style('text-anchor', 'middle')
+					.attr('font-size', '0.7em');
+				
+			}
+			
+		</script>
+		<div class="footer">
+				<a href="http://ahmetrasit.com/pisa/index.html">Explore the spider graph version</a>
+				<br><br>
+				<a href="http://ahmetrasit.com/cv">Ahmet R. Ozturk</a>, 2014 
+				<br>
+				<a href="http://bizdataviz.blogspot.com">bizdataviz.blogspot.com</a>
+		</div>
+	</body>
+</html>

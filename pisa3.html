@@ -1,0 +1,281 @@
+<html>
+	<head>
+		<title>PISA Math Proficiency 2012 - OECD</title>
+		<style>
+			circle{		opacity:0.1;}	
+						
+			line{		stroke:gray;
+						stroke-width:2;}
+			svg{		margin:10;
+						font-family:Helvetica}
+			
+			.cPath{		opacity:0.4}
+			
+			.info 		{	text-anchor:middle;
+						font-size:2em}
+						
+			.hide{		fill:none}
+			
+			.grid {		stroke: black;
+    					fill:none}
+    					
+    		.yAxis	{	opacity:0.5}
+    		.xAxis	{	opacity:1}
+    					
+    					
+    		text{		fill:black}
+    		
+    		.OECD-average{	opacity:0.8;
+    						stroke-width:10}
+    		.OECD-total{	opacity:0.8;
+    						stroke-width:10}
+    						
+    		
+			
+			
+
+		</style>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+	</head>
+	<body>
+		<script>
+			
+		//createNetwork();
+		create1stLineGraph();
+			
+			
+			
+		function create1stLineGraph(){
+			
+			var svg2 = d3.select("body").append("svg")
+											.attr("width", 1200)
+											.attr("height", 600);
+			var colors = d3.scale.category10();
+			var listofCountries = [];
+			
+			d3.json("pisa.json", function(data){
+				var xScale = d3.scale.linear()
+								.domain([0, data[0].pisa.length-1])
+								.range([70, 800]);
+				var tickValueList = ['<358', '358-420', '421-482', '483-544', '545-606', '607-669', '>670'];
+				
+				for (var i=0; i< data.length; i++){
+					listofCountries[i] = data[i].name;
+				}
+				
+				//console.log(listofCountries);
+				
+							
+				var yScale = d3.scale.linear()
+								.domain([0, 50])
+								.range([550, 50]);
+				var tickNames = function(d){return d.name};
+				var xAxis = d3.svg.axis().scale(xScale).tickFormat(function(d,i){return tickValueList[i/2]});
+				var yAxis = d3.svg.axis().scale(yScale).orient("left").ticks(5).tickSize(-780, 0, 0);
+				
+				svg2.append('text')
+					.text('% of All Students')
+					.attr('x', -360)
+					.attr('y', 12)
+					.attr('transform', 'rotate(-90)');
+				svg2.append('text')
+					.text('Math Score')
+					.attr('x', 380)
+					.attr('y', 600);
+					
+					
+				svg2.append('text')
+					.text('Mathematics proficiency: PISA 2012 (OECD)')
+					.attr('x', 430)
+					.attr('y', 30)
+					.style('text-anchor', 'middle')
+					.attr('font-size', '2em');	
+				
+				svg2.append('text')
+					.text('Move your mouse over country names or data points')
+					.attr('x', 430)
+					.attr('y', 80)
+					.style('text-anchor', 'middle')
+					.attr('font-size', '0.8em');
+				
+				
+				svg2.append("g").attr("transform", "translate(0, 560)")
+								.attr('class', 'grid xAxis')
+								.call(xAxis);
+				
+				svg2.append("g").attr("transform", "translate(40, 0	)")
+								.attr('class', 'grid yAxis')
+								.call(yAxis);
+								
+				var line = d3.svg.line()
+								.x(function(d,i){return xScale(i)})
+								.y(function(d){return yScale(d)});
+				
+				for (var i=0; i<data.length; i++){
+					svg2.append("path")
+							.attr("d", line(data[i].pisa))
+							.attr("class", "cPath "+data[i].name)
+							.style('stroke', colors(i))
+							.attr("stroke-width", 3)
+							.attr("fill", "none");
+							
+					svg2.selectAll('circle.'+data[i].name).data(data[i].pisa).enter()
+							.append('circle').on('mouseover', showData).on('mouseout', hideData)
+								.attr('id', data[i].name)
+								.style('fill', colors(i))
+								.attr('cx', function(d,i){return xScale(i)})
+								.attr('cy', function(d){return yScale(d)})
+								.attr('r', 6);
+					console.log(i+data[i].name);			
+					svg2.selectAll('text.tooltip').data(data[i].pisa).enter()
+							.append('text')
+								.attr('class', 'info')
+								.attr('id', 'tooltip'+data[i].name)
+								.style('fill', 'none')
+								.attr('x', function(d,i){return xScale(i)})
+								.attr('y', function(d){return yScale(d)-10})
+								.text(function(d){return d});
+								
+								
+								
+								
+					svg2.append('text').on('mouseover', showLine).on('mouseout', hideLine)
+							.style('fill', colors(i))
+							.attr('id', data[i].name)
+							.attr('x', function(){
+											if(i>data.length/2){
+												return 1000;
+											}else{
+												return 850;
+											}
+										})
+							.attr('y', function(){
+											if(i>data.length/2){
+												return i%34*17 + 19;
+											}else{
+												return i*17+19;
+											}
+										})
+							.text(data[i].name);
+							
+				}
+				
+				function showLine(){
+					console.log(this.id);
+					d3.select("text#" + this.id)
+						.style('font-size', '1.5em');	
+						
+					d3.select("." + this.id)
+						.style('opacity', 1)
+						.style('stroke-width', 7);
+					
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'black');
+					
+					
+					for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != this.id){
+							d3.select("path." + listofCountries[i])
+								.style("opacity", 0.1);
+							d3.selectAll("circle#" + listofCountries[i])
+								.attr("opacity", 0.1);
+						}
+					}
+				}
+				
+				function hideLine(){
+					d3.select("text#" + this.id)
+						.style('font-size', '1em');
+						
+					d3.select("." + this.id)
+						.style('opacity', 1)
+						.style('stroke-width', 2);
+					for (var i=0; i<listofCountries.length;i++){
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.4);
+						d3.selectAll("circle#" + listofCountries[i])
+								.style("opacity", 0.1);
+					}
+					
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'none');
+				}
+				
+				function showData(d,i){
+					//d3.select("text.tooltip" + this.id)
+					//	.style('fill', 'black');
+						
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'black');
+						
+					console.log(this.id);
+					
+						
+					d3.select("." + this.id)
+						.style('opacity', 1)
+						.style('stroke-width', 7);
+					d3.select("text#" + this.id)
+						.style('font-size', '1.5em');	
+						
+					for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != this.id)
+						d3.select("path." + listofCountries[i])
+							.style("opacity", 0.1);
+					}
+				}
+				
+				function hideData(d,i){
+					
+					d3.selectAll("text#tooltip" + this.id)
+						.style('fill', 'none');
+						
+					d3.select("." + this.id)
+						.style('opacity', 0.8)
+						.style('stroke-width', 2);
+						
+					d3.select("text#" + this.id)
+						.style('font-size', '1em');
+					
+					for (var i=0; i<listofCountries.length;i++){
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.4);
+					}
+				}
+				
+				var countryText = svg2.append("text")
+									.attr("id", "countryText")
+									.attr("x", 25)
+									.attr("y", 42)
+									.attr("font-size", 75)
+									.text("");	
+			});
+			
+			}
+			function incOp(d,i){
+				d3.select("path." + d.name)
+						.style("opacity", 1);
+				d3.select("text#countryText").text(d.name)
+												.attr("class", d.name)
+												.attr("fill", "none");
+												
+				for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != d.name)
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.1);
+				}
+				
+			}
+			function redOp(d,i){
+				d3.select("path." + d.name)
+						.style("opacity", 0.5);
+				d3.select("text#countryText").text("");
+				for (var i=0; i<listofCountries.length;i++){
+						if (listofCountries[i] != d.name)
+						d3.select("path." + listofCountries[i])
+						.style("opacity", 0.1);
+				}
+			}
+			
+		</script>
+	</body>
+</html>
